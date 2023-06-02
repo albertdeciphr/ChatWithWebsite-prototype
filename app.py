@@ -5,27 +5,6 @@ from bs4 import BeautifulSoup
 import openai
 import re
 
-def extract_urls(input_text):
-    # Regex pattern to match URLs
-    url_pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
-    
-    # Find all URLs in the input text
-    urls = re.findall(url_pattern, input_text)
-
-    # Match any websites mentioned without http or https
-    bare_url_pattern = re.compile(r'\bwww\.[a-zA-Z0-9-]+(\.[a-zA-Z0-9]+)+')
-
-    # Find all bare URLs
-    bare_urls = re.findall(bare_url_pattern, input_text)
-
-    # Add 'https://' to the start of each bare URL
-    full_bare_urls = ['https://' + url for url in bare_urls]
-
-    # Combine both lists
-    all_urls = urls + full_bare_urls
-
-    return all_urls
-
 # Set your OpenAI API key
 openai.api_key = st.secrets['OPENAI_API_KEY']
 
@@ -33,17 +12,20 @@ st.session_state['model']='gpt-4-0314'
 
 # Create a text area for input and a button
 st.title('Web Text to GPT')
-input_prompt = st.text_area("Input website URL and prompt", 'https://example.com\nWhat is the summary of the content?')
+websites = st.text_area("Input website URL (one each line)", placeholder="https://example.com\nhttps://example.ai\n...")
+input_prompt = st.text_area("Input prompt", 'What is the summary of the content from example.com?')
 generate_button = st.button('Generate Response')
 
 if generate_button:
-    urls = extract_urls(input_prompt)
-    
+    urls = websites.split('\n')[1:]
+    print(urls)
     website_text=''
     
     for url in urls:
         # Download the webpage content
-        page = requests.get(url)
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+
+        page = requests.get(url, headers=headers)
         soup = BeautifulSoup(page.content, 'html.parser')
 
         # Get all text from the webpage
